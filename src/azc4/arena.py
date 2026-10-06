@@ -25,6 +25,14 @@ def mcts_player(simulations: int, rng: np.random.Generator, c: float = 1.4) -> P
     return lambda game: best_move(search(game, simulations, rng, c))
 
 
+def network_player(net) -> Player:
+    """The network on its own, with no search: it plays whichever column it
+    rates highest. This is pure instinct, one look at the board."""
+    from .network import predict
+
+    return lambda game: int(predict(net, game)[0].argmax())
+
+
 def play_game(first: Player, second: Player) -> int:
     """One game. Returns +1 if ``first`` won, -1 if ``second`` won, 0 for a draw."""
     game = Connect4()
