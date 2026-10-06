@@ -1,13 +1,15 @@
 """Play Connect Four in the terminal.
 
-    python scripts/play.py            you (X) against a player that moves at random
-    python scripts/play.py --demo     watch two random players, then see who tends to win
+    python scripts/play.py                 you (X) against a player that moves at random
+    python scripts/play.py --sims 1000     you against tree search thinking 1000 games per move
+    python scripts/play.py --demo          statistics from games between two random players
 """
 import argparse
 
 import numpy as np
 
 from azc4.game import Connect4
+from azc4.mcts import best_move, describe, search
 
 
 def random_player(game: Connect4, rng: np.random.Generator) -> int:
@@ -41,12 +43,20 @@ def demo(games: int = 2000) -> None:
     print(f"  average length     {np.mean(lengths):.1f} moves")
 
 
-def play_human() -> None:
+def play_human(simulations: int) -> None:
     rng = np.random.default_rng()
     game = Connect4()
     while not game.done:
         print("\n" + game.render())
-        move = human_player(game) if game.player == 1 else random_player(game, rng)
+        if game.player == 1:
+            move = human_player(game)
+        elif simulations > 0:
+            root = search(game, simulations, rng)
+            move = best_move(root)
+            print(f"\nThe computer imagined {simulations} games:\n{describe(root)}")
+            print(f"It plays column {move}.")
+        else:
+            move = random_player(game, rng)
         game = game.play(move)
     print("\n" + game.render())
     print({1: "You win!", -1: "You lose.", 0: "Draw."}[game.winner])
@@ -55,5 +65,7 @@ def play_human() -> None:
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--demo", action="store_true")
+    p.add_argument("--sims", type=int, default=0,
+                   help="simulations per move for the computer (0 = random moves)")
     args = p.parse_args()
-    demo() if args.demo else play_human()
+    demo() if args.demo else play_human(args.sims)

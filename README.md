@@ -7,6 +7,6 @@ See [ROADMAP.md](ROADMAP.md) for the plan and progress.
 python -m venv .venv
 .venv/Scripts/python -m pip install -e .[dev]
 .venv/Scripts/python -m pytest
-.venv/Scripts/python scripts/play.py          # play against a random opponent
-.venv/Scripts/python scripts/play.py --demo   # statistics from random games
+.venv/Scripts/python scripts/play.py --sims 1000        # play against tree search
+.venv/Scripts/python scripts/arena.py mcts:200 random   # measure one player against another
 ```
