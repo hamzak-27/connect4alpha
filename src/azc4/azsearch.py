@@ -59,8 +59,12 @@ def puct_score(parent: AZNode, child: AZNode, c_puct: float) -> float:
 
 
 def az_search(game: Connect4, evaluate: Evaluator, simulations: int,
-              c_puct: float = 1.5) -> AZNode:
-    """Run a network-guided search from ``game`` and return the root."""
+              c_puct: float = 1.5, noise: tuple | None = None) -> AZNode:
+    """Run a network-guided search from ``game`` and return the root.
+
+    ``noise`` = (rng, alpha, fraction) blends random noise into the priors of
+    the root's moves. It is used only when generating self-play games, to make
+    the agent try moves it would otherwise ignore; matches run without it."""
     root = AZNode(game)
     for _ in range(simulations):
         node = root
@@ -77,6 +81,11 @@ def az_search(game: Connect4, evaluate: Evaluator, simulations: int,
             priors, value = evaluate(node.game)
             node.children = [AZNode(node.game.play(m), node, m, float(priors[m]))
                              for m in node.game.legal_moves()]
+            if node is root and noise is not None:
+                rng, alpha, fraction = noise
+                draws = rng.dirichlet([alpha] * len(root.children))
+                for child, d in zip(root.children, draws):
+                    child.prior = (1 - fraction) * child.prior + fraction * float(d)
 
         # 3. BACK UP. The player who moved *into* this node is the opponent of
         # the player to move here, so the sign flips at every level going up.
@@ -114,9 +123,10 @@ def describe(root: AZNode) -> str:
 
 
 def network_evaluator(net) -> Evaluator:
-    from .network import predict
+    from .network import predict_prepared
 
-    return lambda game: predict(net, game)
+    net.eval()  # once, not on every one of thousands of calls
+    return lambda game: predict_prepared(net, game)
 
 
 def uniform_evaluator(game: Connect4) -> tuple[np.ndarray, float]:

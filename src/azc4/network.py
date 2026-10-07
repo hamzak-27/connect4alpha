@@ -93,11 +93,17 @@ def loss_fn(net: AZNet, planes, target_policy, target_value):
     return policy_loss + value_loss, policy_loss.item(), value_loss.item()
 
 
-@torch.no_grad()
 def predict(net: AZNet, game: Connect4) -> tuple[np.ndarray, float]:
     """The network's answers for one position: a probability for each column
     (zero for full columns) and the value for the player to move."""
     net.eval()
+    return predict_prepared(net, game)
+
+
+@torch.inference_mode()
+def predict_prepared(net: AZNet, game: Connect4) -> tuple[np.ndarray, float]:
+    """``predict`` for a network already in evaluation mode (the fast path
+    used inside the search, which calls this thousands of times)."""
     planes = torch.from_numpy(encode(game.canonical())).unsqueeze(0)
     logits, value = net(planes)
     probs = torch.softmax(logits[0], dim=0).numpy()

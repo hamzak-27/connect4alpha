@@ -74,3 +74,16 @@ def test_search_is_repeatable_and_works_with_a_real_network():
     a = visit_policy(az_search(play_moves([3, 3]), network_evaluator(net), 40))
     b = visit_policy(az_search(play_moves([3, 3]), network_evaluator(net), 40))
     assert np.array_equal(a, b)   # no randomness: same position, same answer
+
+
+def test_root_noise_changes_only_the_roots_priors_and_keeps_them_a_distribution():
+    game = play_moves([3, 3])
+    plain = az_search(game, uniform_evaluator, 30)
+    noisy = az_search(game, uniform_evaluator, 30, noise=(np.random.default_rng(0), 1.0, 0.25))
+    plain_priors = [ch.prior for ch in plain.children]
+    noisy_priors = [ch.prior for ch in noisy.children]
+    assert plain_priors != noisy_priors
+    assert abs(sum(noisy_priors) - 1) < 1e-6 and min(noisy_priors) > 0
+    # one level down nothing was touched: still the evaluator's uniform priors
+    grandchildren = [g for ch in noisy.children for g in ch.children]
+    assert grandchildren and all(abs(g.prior - 1 / 7) < 1e-6 for g in grandchildren)
