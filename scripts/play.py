@@ -2,6 +2,8 @@
 
     python scripts/play.py                 you (X) against a player that moves at random
     python scripts/play.py --sims 1000     you against tree search thinking 1000 games per move
+    python scripts/play.py --sims 200 --net runs/imitate/net.pt
+                                           you against the network guiding the search
     python scripts/play.py --demo          statistics from games between two random players
 """
 import argparse
@@ -43,13 +45,23 @@ def demo(games: int = 2000) -> None:
     print(f"  average length     {np.mean(lengths):.1f} moves")
 
 
-def play_human(simulations: int) -> None:
+def play_human(simulations: int, net_path: str | None) -> None:
     rng = np.random.default_rng()
     game = Connect4()
+    evaluate = None
+    if net_path:
+        from azc4 import azsearch
+        from azc4.network import load
+        evaluate = azsearch.network_evaluator(load(net_path))
     while not game.done:
         print("\n" + game.render())
         if game.player == 1:
             move = human_player(game)
+        elif evaluate is not None:
+            root = azsearch.az_search(game, evaluate, max(simulations, 1))
+            move = azsearch.best_move(root)
+            print(f"\nThe computer's thinking:\n{azsearch.describe(root)}")
+            print(f"It plays column {move}.")
         elif simulations > 0:
             root = search(game, simulations, rng)
             move = best_move(root)
@@ -67,5 +79,6 @@ if __name__ == "__main__":
     p.add_argument("--demo", action="store_true")
     p.add_argument("--sims", type=int, default=0,
                    help="simulations per move for the computer (0 = random moves)")
+    p.add_argument("--net", help="saved network; the computer then uses network-guided search")
     args = p.parse_args()
-    demo() if args.demo else play_human(args.sims)
+    demo() if args.demo else play_human(args.sims, args.net)

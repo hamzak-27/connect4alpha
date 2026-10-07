@@ -67,3 +67,26 @@ def test_wilson_interval_narrows_with_more_games():
     low_few, high_few = wilson_interval(0.6, 10)
     low_many, high_many = wilson_interval(0.6, 1000)
     assert low_few < low_many < 0.6 < high_many < high_few
+
+
+def test_openings_are_shared_by_both_seats_and_never_finished():
+    from azc4.arena import random_opening
+
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        game = random_opening(6, rng)
+        assert game.moves == 6 and not game.done
+
+    # Record the starting position each deterministic player is asked to move from.
+    seen = []
+
+    def recorder(game):
+        if game.moves in (4, 5):
+            seen.append((game.moves, game.board.tobytes()))
+        return game.legal_moves()[0]
+
+    play_match(recorder, recorder, games=4, rng=np.random.default_rng(1), opening_plies=4)
+    starts = [board for moves, board in seen if moves == 4]
+    assert len(starts) == 4
+    assert starts[0] == starts[1] and starts[2] == starts[3]   # each opening is played twice
+    assert starts[0] != starts[2]                              # and the openings differ

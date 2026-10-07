@@ -13,10 +13,19 @@ One step at a time; each step ends with something that runs and is tested.
   98.5% of the time, with 200 it won 100 of 100. More thinking keeps helping: 200
   simulations beat 50 with an 89.5% score, and 1000 beat 200 with 80.8%. This
   1000-simulation player is the baseline the learned agent has to beat.*
-- [ ] **3. The neural network.** One network with two outputs: which moves look
-  promising (policy) and who is winning (value).
-- [ ] **4. Search guided by the network.** Replace random playouts with the network's
-  judgement (the AlphaZero search).
+- [x] **3. The neural network.** One network with two outputs: which moves look
+  promising (policy) and who is winning (value). *Done: trained to imitate 600 games of
+  400-simulation search. On unseen games its favourite move matches the search's 49% of
+  the time (11% untrained). Playing with no search at all it beat random 100-0, scored
+  82% against 50-simulation search and 29% against its 400-simulation teacher. The value
+  head learned little from single-game outcomes; self-play should fix that.*
+- [x] **4. Search guided by the network.** Replace random playouts with the network's
+  judgement (the AlphaZero search). *Done, using the step 3 imitation network and random
+  openings. Guided search with 50 simulations scored 73% against the network alone and
+  75% against plain search with 50. It did not beat stronger plain search: 38.5% with 100
+  simulations against 400, and 41.7% with 200 against the 1000-simulation baseline (the
+  network alone scores 22.5% against 400). Search clearly improves on the network, but
+  this network's weak value head holds it back. Self-play training is the fix.*
 - [ ] **5. Self-play training.** The agent plays itself, learns from the games, and
   repeats.
 - [ ] **6. Measuring strength.** Elo ratings across training, matches against the
